@@ -23,102 +23,89 @@ def papi_algorithm(sizex,sizey):
                             heights[pix[0] + x][pix[1] + y] += int((r - abs(x) - abs(y))/5)
     return heights
 
-def avg_square(coordinates, heights):
+def square_avg(coordinates, size_of_step, heights):
     sum = 0
-    for x in range(2):
-        for y in range(2):
-            sum += heights[coordinates[2*x+y][0]][coordinates[2*x+y][1]]
-    return int(sum/len(coordinates))
+    for x in [-1,1]:
+        for y in [-1,1]:
+            print(coordinates[0]+size_of_step*x, ":",coordinates[1]+size_of_step*y)
+            sum += heights[coordinates[0]+size_of_step*x][coordinates[1]+size_of_step*y]
+    return int(sum/4)
 
+def square_step(heights, size_of_step, randomness):
+    for x in range(0, int((len(heights)-1)/size_of_step/2)):
+        for y in range(0, int((len(heights)-1)/size_of_step/2)):
+            value = square_avg([(2*x+1)*size_of_step,(2*y+1)*size_of_step], size_of_step, heights)
+            heights[(2*x+1)*size_of_step][(2*y+1)*size_of_step] = value + random.randint(-randomness,randomness)
 
-def square_step(heights):
-    sizex = len(heights)
-    sizey = len(heights[0])
-    copy_of_heights = [[i for i in x] for x in heights]
-    corners = [0, 0, 0, 0]
-    while len(corners) == 4:
-        corners = []
-        for x in range(sizex):
-            if len([i for i in copy_of_heights[x] if i != None]):
-                for y in range(sizey):
-                    if copy_of_heights[x][y] != None:
-                        if len(corners) < 2:
-                            corners.append((x, y))
-                        elif ((len(corners) == 2) and (y == corners[0][1])) or (
-                            (len(corners) == 3) and (y == corners[1][1])):
-                            corners.append((x, y))
-                if len(corners) == 4:
-                    break
-        if len(corners) == 4:
-            new_x = int((corners[0][0] + corners[3][0]) / 2)
-            new_y = int((corners[0][1] + corners[3][1]) / 2)
-            heights[new_x][new_y] = avg_square(corners, heights)+random.randint(-10,10)
-            copy_of_heights[corners[0][0]][corners[0][1]] = None
-
-def avg_diamond(coordinates, heights):
+def diamond_avg(coordinates, size_of_step, heights):
     sum = 0
-    for c in coordinates:
-            sum += heights[c[0]][c[1]]
-    return int(sum/len(coordinates))
+    number_of_addings = 0
+    for i in [-1,1]:
+        if (coordinates[0] + i * size_of_step >= 0) and (coordinates[0] + i * size_of_step < len(heights)-1):
+            sum += heights[coordinates[0]+i*size_of_step][coordinates[1]]
+            number_of_addings += 1
+    for i in [-1,1]:
+        if (coordinates[1]+i*size_of_step >= 0) and (coordinates[1] + i * size_of_step < len(heights)):
+            sum += heights[coordinates[0]][coordinates[1]+i*size_of_step]
+            number_of_addings += 1
+    return int(sum/number_of_addings)
 
-def get_intersect_list(heights):
-    intersect_list = [[[] for y in range(len(heights[x]))] for x in range(len(heights))]
-    for x in range(len(heights)):
-        for y in range(len(heights[x])):
-            if heights[x][y] != None:
-                for inter_x in range(x + 1, len(heights)):
-                    if heights[inter_x][y] == None:
-                        intersect_list[inter_x][y].append((x,y))
-                    else:
-                        break
-                for inter_x in range(0, x)[::-1]:
-                    if heights[inter_x][y] == None:
-                        intersect_list[inter_x][y].append((x,y))
-                    else:
-                        break
-                for inter_y in range(0, y)[::-1]:
-                    if heights[x][inter_y] == None:
-                        intersect_list[x][inter_y].append((x,y))
-                    else:
-                        break
-                for inter_y in range(y + 1, len(heights[x])):
-                    if heights[x][inter_y] == None:
-                        intersect_list[x][inter_y].append((x,y))
-                    else:
-                        break
-    return intersect_list
+def diamond_step(heights, size_of_step, randomness):
 
-def diamond_step(heights):
-    intersect_list = get_intersect_list(heights)
-    for x in range(len(heights)):
-        for y in range(len(heights[x])):
-            if len(intersect_list[x][y])>2:
-                heights[x][y] = avg_diamond(intersect_list[x][y],heights)+random.randint(-30,30)
+    for x in range(0, int((len(heights)-1)/size_of_step/2 + 1)):
+        for y in range(0, int((len(heights)-1)/size_of_step/2)):
+            value = diamond_avg([2*x*size_of_step, (2*y+1)*size_of_step], size_of_step, heights)
+            heights[2*x*size_of_step][(2*y+1)*size_of_step] = value + random.randint(-randomness,randomness)
 
-def diamond_square_algorithm(sizex,sizey):
-    heights = [[None for y in range(sizey)] for x in range(sizex)]
+
+    for x in range(0, int((len(heights)-1)/size_of_step/2)):
+        for y in range(0, int((len(heights)-1)/size_of_step/2 + 1)):
+            value = diamond_avg([(2*x+1)*size_of_step, 2*y*size_of_step], size_of_step, heights)
+            heights[(2*x+1)*size_of_step][2*y*size_of_step] = value + random.randint(-randomness,randomness)
+
+
+def diamond_square_algorithm(size, randomness):
+    heights = [[None for y in range(size)] for x in range(size)]
 
     #Sets initial values in corners of matrix.
     for x in range(2):
         for y in range(2):
             heights[x * (len(heights)-1)][y *(len(heights[0])-1)] = random.randint(0,255)
 
+    size_of_step = int((size - 1) / 2)
     while None in [i for x in heights for i in x]:
-        square_step(heights)
-        diamond_step(heights)
+        square_step(heights, size_of_step, randomness)
+        diamond_step(heights, size_of_step, randomness)
+        print("...")
+        for i in heights:
+            print(i)
+        print("...")
+        size_of_step = int(size_of_step/2)
 
     return heights
 
-def make_a_bitmap(name, sizex, sizey):
+def make_a_bitmap(name, sizex, sizey,randomness):
+    if sizex>sizey:
+        size = sizex
+    else:
+        size = sizey
+
+    power = 0
+    size = size - 1
+    while size>1:
+        size = size/2
+        power += 1
+    size = 2**power + 1
+
     img = Image.new('RGB', (sizex, sizey), "black")  # create a new black image
     pixels = img.load()  # create the pixel map
 
-    heights = diamond_square_algorithm(sizex, sizey)
+    heights = diamond_square_algorithm(size,randomness)
     for x in range(sizex):
         for y in range(sizey):
             grey = int(heights[x][y])
-            pixels[x,y] = (int(grey/1.1),int(grey),int(grey/1.3))
+            pixels[x,y] = (int(grey),int(grey/1.5),int(grey/9))
     img.show()
     img.save(name + ".jpg")
 
-make_a_bitmap("map",513,513)
+make_a_bitmap("map",1600,900,20)
