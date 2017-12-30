@@ -1,11 +1,15 @@
 from PIL import Image
 import random
 from collections import deque
+import math
 
-def random_pixel(sizex,sizey):
-    return random.randint(0,sizex),random.randint(0,sizey),random.randint(0,20)
+def random_pixel(sizex, sizey):
+    return random.randint(0,sizex),random.randint(0,sizey),random.randint(0,50), random.randint(0,50)
 
-def papi_algorithm(sizex,sizey):
+def normal_random(minim, maxim):
+    return random.randint(minim,maxim)
+
+def papi_algorithm(sizex, sizey, randomness):
     """
     Try for creating my own algorithm for generating terrain - it randomly
     picks the value in the image, increases it by another value and than it
@@ -14,19 +18,14 @@ def papi_algorithm(sizex,sizey):
     """
     heights = [[0 for x in range(sizey+1)] for y in range(sizex+1)]
 
-    for i in range(int(sizex*sizey/10)):
+    for i in range(int(sizex*sizey/100)):
         pix = random_pixel(sizex,sizey)
-        for r in range(pix[2]):
-            for x in range(-r,r):
-                for y in range(-r,r):
-                    ran = random.randint(0, 2)
-                    if (pix[0]+x >= 0) and (pix[0]+x < sizex) and (pix[1]+y >= 0) and (pix[1]+y < sizey):
-                        if ran==0:
-                            heights[pix[0]+x][pix[1]+y] += int((r - abs(x))/5)
-                        elif ran==1:
-                            heights[pix[0] + x][pix[1] + y] += int((r - abs(y))/5)
-                        else:
-                            heights[pix[0] + x][pix[1] + y] += int((r - abs(x) - abs(y))/5)
+        r = pix[2]
+        h = pix[3]
+        for x in range(-r,r):
+            for y in range(-r,r):
+                if (pix[0]+x >= 0) and (pix[0]+x < sizex) and (pix[1]+y >= 0) and (pix[1]+y < sizey):
+                    heights[pix[0] + x][pix[1] + y] += int(h - math.sqrt(abs(x)**2+abs(y)**2)*h/r)
     return heights
 
 def square_avg(coordinates, size_of_step, heights):
@@ -46,10 +45,9 @@ def square_step(heights, size_of_step, randomness):
     for x in range(0, int((len(heights)-1)/s/2)):
         for y in range(0, int((len(heights)-1)/s/2)):
             value = square_avg([(2*x+1)*s,(2*y+1)*s], s, heights)
-            heights[(2*x+1)*s][(2*y+1)*s] = value + random.randint(-r,r)
+            heights[(2*x+1)*s][(2*y+1)*s] = value + normal_random(-r,r)
 
 def diamond_avg(coordinates, size_of_step, heights):
-
     sum = 0
     number_of_addings = 0
 
@@ -78,13 +76,13 @@ def diamond_step(heights, size_of_step, randomness):
     for x in range(0, int((len(heights)-1)/s/2 + 1)):
         for y in range(0, int((len(heights)-1)/s/2)):
             value = diamond_avg([2*x*s, (2*y+1)*s], s, heights)
-            heights[2*x*s][(2*y+1)*s] = value + random.randint(-r,r)
+            heights[2*x*s][(2*y+1)*s] = value + normal_random(-r,r)
 
 
     for x in range(0, int((len(heights)-1)/s/2)):
         for y in range(0, int((len(heights)-1)/s/2 + 1)):
             value = diamond_avg([(2*x+1)*s, 2*y*s], s, heights)
-            heights[(2*x+1)*s][2*y*s] = value + random.randint(-r,r)
+            heights[(2*x+1)*s][2*y*s] = value + normal_random(-r,r)
 
 
 def diamond_square_algorithm(sizex, sizey, randomness):
@@ -96,6 +94,7 @@ def diamond_square_algorithm(sizex, sizey, randomness):
     #Pick longer dimension of the image, find n for which is 2**n + 1 bigger
     #than this dimension, and create two-dimensional list of that size (because
     #it is much simpler to generate terrain for these parameters).
+
     if sizex>sizey:
         size = sizex
     else:
@@ -132,7 +131,7 @@ def diamond_square_algorithm(sizex, sizey, randomness):
 
     return heights
 
-def make_a_bitmap(name, sizex, sizey,randomness):
+def make_a_bitmap(name, sizex, sizey, randomness, algorithm):
     """
     Function generates image of given size with diamond-square algorithm
     and saves it as .jpg file with given name.
@@ -140,12 +139,20 @@ def make_a_bitmap(name, sizex, sizey,randomness):
     img = Image.new('RGB', (sizex, sizey), "black")  # create a new black image
     pixels = img.load()  # create the pixel map
 
-    heights = diamond_square_algorithm(sizex, sizey, randomness)
+    heights = algorithm(sizex, sizey, randomness)
     for x in range(sizex):
         for y in range(sizey):
-            grey = int(heights[x][y])
-            pixels[x,y] = (int(grey),int(grey),int(grey))
+            pixels[x, y] = (int(heights[x][y]*0.3), int(heights[x][y]*0.9), int(heights[x][y]*0.3))
     img.show()
     img.save(name + ".jpg")
 
-make_a_bitmap("wallpaper",1600,900,30)
+def mix_algorithm(sizex, sizey, randomness):
+    heights1 = diamond_square_algorithm(sizex, sizey, randomness)
+    heights2 = papi_algorithm(sizex, sizey, randomness)
+    heights = [[None for y in range(sizey)] for x in range(sizex)]
+
+    for x in range(sizex):
+        for y in range(sizey):
+            heights[x][y] = (heights1[x][y] + 2*heights2[x][y])//3
+
+make_a_bitmap("small", 800, 800, 30, diamond_square_algorithm)
