@@ -131,6 +131,16 @@ def diamond_square_algorithm(sizex, sizey, randomness):
 
     return heights
 
+def mix_algorithm(sizex, sizey, randomness):
+    heights1 = diamond_square_algorithm(sizex, sizey, randomness)
+    heights2 = papi_algorithm(sizex, sizey, randomness)
+    heights = [[None for y in range(sizey)] for x in range(sizex)]
+
+    for x in range(sizex):
+        for y in range(sizey):
+            heights[x][y] = (heights1[x][y] + heights2[x][y])//2
+    return heights
+
 def make_a_bitmap(name, sizex, sizey, randomness, algorithm):
     """
     Function generates image of given size with diamond-square algorithm
@@ -142,17 +152,8 @@ def make_a_bitmap(name, sizex, sizey, randomness, algorithm):
     heights = algorithm(sizex, sizey, randomness)
     for x in range(sizex):
         for y in range(sizey):
-            pixels[x, y] = (int(heights[x][y]*0.3), int(heights[x][y]*0.9), int(heights[x][y]*0.3))
+            pixels[x, y] = (int(heights[x][y]*0.6), int(heights[x][y]*0.9), int(heights[x][y]*0.6))
     img.show()
     img.save(name + ".jpg")
 
-def mix_algorithm(sizex, sizey, randomness):
-    heights1 = diamond_square_algorithm(sizex, sizey, randomness)
-    heights2 = papi_algorithm(sizex, sizey, randomness)
-    heights = [[None for y in range(sizey)] for x in range(sizex)]
-
-    for x in range(sizex):
-        for y in range(sizey):
-            heights[x][y] = (heights1[x][y] + 2*heights2[x][y])//3
-
-make_a_bitmap("small", 800, 800, 30, diamond_square_algorithm)
+make_a_bitmap("small", 800, 800, 30, mix_algorithm)
